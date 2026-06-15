@@ -1,0 +1,302 @@
+# PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG RIKKEI ESPORTS FANTASY LEAGUE
+
+## 1. Phân tích bài toán
+
+Hệ thống Rikkei Esports Fantasy League được xây dựng nhằm quản lý hoạt động đầu tư Fan Token vào các tuyển thủ Esports. Người dùng có thể thực hiện các chức năng như xem thông tin tuyển thủ, đầu tư token, rút vốn, cập nhật phong độ và tính điểm sau mỗi trận đấu.
+
+Dữ liệu tuyển thủ được lưu trữ dưới dạng danh sách các Dictionary, trong đó mỗi Dictionary chứa các thông tin:
+
+* player_id: Mã tuyển thủ
+* name: Tên tuyển thủ
+* market_value: Giá trị thị trường
+* fan_tokens: Số token đã được đầu tư
+* match_points: Điểm tích lũy
+* form_multiplier: Hệ số phong độ
+
+Hệ thống phải đảm bảo dữ liệu luôn chính xác, hạn chế lỗi nhập liệu và ghi nhận đầy đủ các hoạt động thông qua cơ chế Logging.
+
+---
+
+## 2. Áp dụng nguyên tắc Clean Code
+
+Trong quá trình thiết kế hệ thống, các nguyên tắc Clean Code được áp dụng nhằm tăng khả năng bảo trì và mở rộng chương trình.
+
+### 2.1 Đặt tên rõ nghĩa
+
+Tên biến và tên hàm được đặt theo chuẩn PEP 8 và phản ánh đúng chức năng của chúng.
+
+Ví dụ:
+
+| Không nên dùng | Nên dùng               |
+| -------------- | ---------------------- |
+| p              | player                 |
+| ds             | players                |
+| x              | player_index           |
+| f              | fan_tokens             |
+| calc           | calc_actual_withdrawal |
+
+Việc đặt tên rõ ràng giúp người đọc dễ dàng hiểu được mục đích của biến mà không cần đọc thêm chú thích.
+
+---
+
+### 2.2 Single Responsibility Principle
+
+Mỗi hàm chỉ đảm nhiệm một nhiệm vụ duy nhất.
+
+Ví dụ:
+
+* display_market() chỉ hiển thị dữ liệu tuyển thủ.
+* invest_tokens() chỉ xử lý đầu tư token.
+* withdraw_tokens() chỉ xử lý rút token.
+* update_form() chỉ xử lý cập nhật phong độ.
+* calculate_match_points() chỉ xử lý tính điểm trận đấu.
+
+Việc chia nhỏ chức năng giúp mã nguồn dễ kiểm thử và bảo trì hơn.
+
+---
+
+### 2.3 Tái sử dụng mã nguồn
+
+Một hàm hỗ trợ được xây dựng:
+
+find_player_by_id(players, player_id)
+
+Hàm này chịu trách nhiệm tìm vị trí tuyển thủ theo mã ID và được sử dụng lại trong nhiều chức năng như:
+
+* Đầu tư token
+* Rút vốn
+* Cập nhật phong độ
+* Chấm điểm trận đấu
+
+Điều này giúp tránh lặp lại cùng một đoạn mã tìm kiếm nhiều lần.
+
+---
+
+## 3. Thiết kế các hàm chức năng
+
+### 3.1 Hàm find_player_by_id()
+
+Chức năng:
+
+* Tìm tuyển thủ theo mã ID.
+* Trả về vị trí (index) của tuyển thủ trong danh sách.
+* Trả về -1 nếu không tìm thấy.
+
+Lợi ích:
+
+* Tái sử dụng trong nhiều chức năng.
+* Giảm lặp mã nguồn.
+* Tuân thủ nguyên tắc DRY (Don't Repeat Yourself).
+
+---
+
+### 3.2 Hàm display_market()
+
+Chức năng:
+
+* Hiển thị toàn bộ thông tin tuyển thủ.
+* Xác định trạng thái đầu tư dựa trên số Fan Token.
+
+Quy tắc:
+
+* fan_tokens = 0 → Chưa có người đầu tư
+* 0 < fan_tokens ≤ 1000 → Đang thu hút
+* fan_tokens > 1000 → Tuyển thủ Hot
+
+Sử dụng phương thức .get() để tránh lỗi KeyError khi dữ liệu thiếu trường thông tin.
+
+---
+
+### 3.3 Hàm invest_tokens()
+
+Chức năng:
+
+* Nhận mã tuyển thủ.
+* Nhập số token đầu tư.
+* Cộng thêm token vào tuyển thủ tương ứng.
+
+Xử lý ngoại lệ:
+
+* ValueError khi người dùng nhập chữ.
+* ValueError khi nhập số âm hoặc bằng 0.
+
+---
+
+### 3.4 Hàm withdraw_tokens()
+
+Chức năng:
+
+* Cho phép người dùng rút token đã đầu tư.
+
+Công thức:
+
+Actual Received = Withdraw Amount × 90%
+
+Phí giao dịch:
+
+Fee = Withdraw Amount × 10%
+
+Ví dụ:
+
+* Rút 500 token
+* Phí: 50 token
+* Thực nhận: 450 token
+
+Điểm cần chú ý:
+
+Số token bị trừ khỏi tuyển thủ phải là số token người dùng yêu cầu rút, không phải số token thực nhận.
+
+Đây là lỗi logic thường gặp và cần được kiểm tra bằng Debugging.
+
+---
+
+### 3.5 Hàm update_form()
+
+Chức năng:
+
+* Cập nhật hệ số phong độ của tuyển thủ.
+
+Điều kiện hợp lệ:
+
+0.5 ≤ form_multiplier ≤ 2.5
+
+Xử lý ngoại lệ:
+
+* ValueError khi nhập chữ.
+* Kiểm tra giới hạn giá trị.
+
+---
+
+### 3.6 Hàm calculate_match_points()
+
+Chức năng:
+
+* Chấm điểm sau mỗi trận đấu.
+
+Công thức:
+
+Match Points Earned = Base Points × Form Multiplier
+
+Ví dụ:
+
+* Điểm gốc: 100
+* Hệ số: 1.2
+* Điểm nhận được: 120
+
+Điểm mới sẽ được cộng dồn vào match_points hiện có.
+
+---
+
+## 4. Exception Handling
+
+Hệ thống áp dụng cơ chế xử lý ngoại lệ nhằm đảm bảo chương trình không bị dừng đột ngột.
+
+Các ngoại lệ được xử lý:
+
+### ValueError
+
+Xuất hiện khi:
+
+* Nhập chữ thay vì số.
+* Nhập số âm.
+* Nhập dữ liệu sai định dạng.
+
+Ví dụ:
+
+```text
+Nhập số token muốn đầu tư: một trăm
+```
+
+Hệ thống sẽ yêu cầu nhập lại thay vì bị crash.
+
+---
+
+### Kiểm tra điều kiện nghiệp vụ
+
+Ngoài Exception, chương trình còn kiểm tra:
+
+* Không cho đầu tư token ≤ 0.
+* Không cho rút vượt quá số token hiện có.
+* Không cho nhập hệ số ngoài khoảng cho phép.
+* Không cho chấm điểm âm.
+
+---
+
+## 5. Logging
+
+Hệ thống sử dụng thư viện logging của Python để lưu lại toàn bộ hoạt động.
+
+File log:
+
+fantasy_league.log
+
+Cấu hình:
+
+```python
+logging.basicConfig(
+    filename="fantasy_league.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+```
+
+Mục đích:
+
+* Theo dõi lịch sử giao dịch.
+* Hỗ trợ Debug.
+* Hỗ trợ kiểm tra lỗi trong quá trình vận hành.
+
+Ví dụ:
+
+```text
+2026-06-04 10:16:30,456 - INFO - Invested 300 tokens into GEN01
+```
+
+---
+
+## 6. Unit Testing
+
+Để đảm bảo tính chính xác của nghiệp vụ rút token, hệ thống xây dựng hàm:
+
+calc_actual_withdrawal(withdraw_amount)
+
+Hàm này trả về số token thực nhận sau khi trừ 10% phí.
+
+### Test Case 1
+
+Input:
+
+100
+
+Expected Output:
+
+90.0
+
+---
+
+### Test Case 2
+
+Input:
+
+-100
+
+Expected Output:
+
+ValueError
+
+Việc xây dựng Unit Test giúp phát hiện lỗi sớm và đảm bảo các thay đổi sau này không làm sai lệch nghiệp vụ cốt lõi của hệ thống.
+
+---
+
+## 7. Kết luận
+
+Sau khi Refactor, hệ thống đã đáp ứng các yêu cầu của một phần mềm chuyên nghiệp:
+
+* Tuân thủ chuẩn PEP 8.
+* Tách chức năng thành các hàm độc lập.
+* Áp dụng Type Hinting và Docstrings.
+* Xử lý ngoại lệ đầy đủ.
+* Ghi log toàn bộ hoạt động.
+* Có Unit Test bảo vệ nghiệp vụ quan trọng.
+
+Thiết kế này giúp hệ thống dễ bảo trì, dễ mở rộng và hạn chế tối đa các lỗi phát sinh trong quá trình vận hành thực tế.
