@@ -339,9 +339,7 @@ def update_form(players: list) -> None:
     )
 
 
-def calculate_match_points(
-    players: list
-) -> None:
+def calculate_match_points(players: list) -> None:
     """
     Chấm điểm sau trận đấu.
     """
@@ -403,9 +401,113 @@ def calculate_match_points(
     )
 
 
+def search_player(players: list) -> None:
+    """
+    Tìm kiếm tuyển thủ theo tên hoặc ID.
+    """
+    print("\n--- TÌM KIẾM TUYỂN THỦ ---")
+
+    keyword = input(
+        "Nhập tên hoặc mã tuyển thủ: "
+    ).strip().lower()
+
+    results = [
+        p for p in players
+        if keyword in p.get("name", "").lower()
+        or keyword in p.get("player_id", "").lower()
+    ]
+
+    if not results:
+        print("Không tìm thấy tuyển thủ phù hợp.")
+        logging.info(f"Search '{keyword}' returned no results.")
+        return
+
+    print(f"\nTìm thấy {len(results)} tuyển thủ:\n")
+
+    print(
+        f"{'ID':<10}"
+        f"{'Tên':<15}"
+        f"{'Giá trị':<15}"
+        f"{'Token':<12}"
+        f"{'Điểm':<10}"
+        f"{'Hệ số'}"
+    )
+
+    print("-" * 70)
+
+    for player in results:
+        print(
+            f"{player.get('player_id', ''):<10}"
+            f"{player.get('name', ''):<15}"
+            f"{player.get('market_value', 0):<15,}"
+            f"{player.get('fan_tokens', 0):<12,}"
+            f"{player.get('match_points', 0):<10}"
+            f"{player.get('form_multiplier', 1.0)}"
+        )
+
+    logging.info(
+        f"Search '{keyword}' returned {len(results)} result(s)."
+    )
+
+
+def rank_players(players: list) -> None:
+    """
+    Xếp hạng tuyển thủ theo điểm hoặc Fan Token.
+    """
+    print("\n--- XẾP HẠNG TUYỂN THỦ ---")
+    print("1. Xếp hạng theo điểm thi đấu")
+    print("2. Xếp hạng theo Fan Token")
+
+    while True:
+        choice = input("Chọn tiêu chí (1-2): ").strip()
+
+        if choice in ("1", "2"):
+            break
+
+        print("Lựa chọn không hợp lệ. Vui lòng nhập 1 hoặc 2.")
+
+    if choice == "1":
+        sorted_players = sorted(
+            players,
+            key=lambda p: p.get("match_points", 0),
+            reverse=True
+        )
+        criteria_label = "Điểm thi đấu"
+        criteria_key = "match_points"
+    else:
+        sorted_players = sorted(
+            players,
+            key=lambda p: p.get("fan_tokens", 0),
+            reverse=True
+        )
+        criteria_label = "Fan Token"
+        criteria_key = "fan_tokens"
+
+    print(f"\n--- BẢNG XẾP HẠNG THEO {criteria_label.upper()} ---\n")
+
+    print(
+        f"{'Hạng':<6}"
+        f"{'ID':<10}"
+        f"{'Tên':<15}"
+        f"{criteria_label}"
+    )
+
+    print("-" * 45)
+
+    for rank, player in enumerate(sorted_players, start=1):
+        print(
+            f"{rank:<6}"
+            f"{player.get('player_id', ''):<10}"
+            f"{player.get('name', ''):<15}"
+            f"{player.get(criteria_key, 0):,}"
+        )
+
+    logging.info(f"Player ranking viewed by {criteria_label}.")
+
+
 def display_menu() -> None:
     """
-    Hiển thị menu.
+    Hiển thị menu chính.
     """
     print(
         "\n===== HỆ THỐNG RIKKEI ESPORTS FANTASY ====="
@@ -415,7 +517,9 @@ def display_menu() -> None:
     print("3. Rút vốn (Hoàn trả Token)")
     print("4. Biến động phong độ")
     print("5. Chấm điểm sau trận đấu")
-    print("6. Thoát hệ thống")
+    print("6. Tìm kiếm tuyển thủ")
+    print("7. Xếp hạng tuyển thủ")
+    print("8. Thoát hệ thống")
     print(
         "=========================================="
     )
@@ -423,14 +527,17 @@ def display_menu() -> None:
 
 def main() -> None:
     """
-    Hàm điều khiển chương trình.
+    Hàm điều khiển chương trình chính.
+    Vòng lặp menu tương tác với người dùng.
     """
+    logging.info("Fantasy League system started.")
+
     while True:
 
         display_menu()
 
         choice = input(
-            "Chọn chức năng (1-6): "
+            "Chọn chức năng (1-8): "
         ).strip()
 
         if choice == "1":
@@ -449,6 +556,12 @@ def main() -> None:
             calculate_match_points(players)
 
         elif choice == "6":
+            search_player(players)
+
+        elif choice == "7":
+            rank_players(players)
+
+        elif choice == "8":
             logging.info(
                 "Fantasy League system closed."
             )
@@ -460,7 +573,7 @@ def main() -> None:
 
         else:
             print(
-                "Lựa chọn không hợp lệ."
+                "Lựa chọn không hợp lệ. Vui lòng chọn từ 1 đến 8."
             )
 
 
